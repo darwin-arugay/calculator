@@ -1,0 +1,16 @@
+.display {
+  display: flex;
+  width: 320px;
+  flex-wrap: wrap;
+  align-self: center;
+  color: white;
+  background: #1c191c;
+  line-height: 130px;
+  justify-content: flex-end;
+  padding: 5px 10px;
+  flex: 1;
+  font-size: 6em;
+
+  .character {
+  }
+}
