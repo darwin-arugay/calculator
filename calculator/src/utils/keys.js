@@ -22,7 +22,7 @@ export const keys = [
     char: "÷",
     type: "operator",
     name: "divide",
-    operation: "/",
+    operator: "/",
   },
   {
     order: 5,
@@ -109,14 +109,14 @@ export const keys = [
   {
     order: 18,
     char: ".",
-    type: "number",
-    name: "decimal",
+    type: "decimal",
+    name: "dot",
   },
   {
     order: 19,
     char: "=",
     type: "operator",
     name: "equal",
-    operation: "=",
+    operator: "=",
   },
 ];

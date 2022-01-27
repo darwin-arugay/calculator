@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { Key } from "../keys/Key";
 import { keys } from "../../utils/keys";
 import { sortBy } from "lodash";
@@ -7,58 +7,172 @@ import { sortBy } from "lodash";
 import "./keypad.scss";
 
 export const Keypad = ({ displayValue, setDisplayValue }) => {
-  const [previousValue, setPreviousValue] = useState(0);
-  console.log(previousValue);
+  const [value, setValue] = useState(null);
+  const [operator, setOperator] = useState(null);
+  const [waitingForOperand, setWaitingOperand] = useState(false);
   const sortedKeys = useMemo(() => sortBy(keys, "order"), [keys]);
+
+  const CalculatorOperations = {
+    "/": (prevValue, nextValue) => prevValue / nextValue,
+    "*": (prevValue, nextValue) => prevValue * nextValue,
+    "+": (prevValue, nextValue) => prevValue + nextValue,
+    "-": (prevValue, nextValue) => prevValue - nextValue,
+    "=": (prevValue, nextValue) => nextValue,
+  };
+  const performOperation = (nextOperator) => {
+    const inputValue = parseFloat(displayValue);
+    console.log("value", value);
+    if (value === null) {
+      setValue(inputValue);
+    } else if (operator) {
+      console.log("operator", operator);
+      const currentValue = value || 0;
+      const newValue = CalculatorOperations[operator](currentValue, inputValue);
+      setValue(newValue);
+      setDisplayValue(String(newValue));
+    }
+    setOperator(nextOperator);
+    setWaitingOperand(true);
+  };
+  const clearDisplay = () => {
+    setDisplayValue("0");
+  };
+
+  const clearAll = () => {
+    setValue(null);
+    setDisplayValue("0");
+    setOperator(null);
+    setWaitingOperand(false);
+  };
+
+  const clearLastChar = () => {
+    setDisplayValue(
+      (prevChar) => prevChar.substring(0, prevChar.length - 1) || "0"
+    );
+  };
+
+  const toggleSign = () => {
+    setDisplayValue((prevChar) => {
+      const newValue = parseFloat(prevChar) * -1;
+      return String(newValue);
+    });
+  };
+
+  const inputPercent = () => {
+    setDisplayValue((prevChar) => {
+      const currentValue = parseFloat(prevChar);
+      if (currentValue === 0) return prevChar;
+      const fixedDigits = prevChar.replace(/^-?\d*\.?/, "");
+      const newValue = currentValue / 100;
+      return String(newValue.toFixed(fixedDigits.length + 2));
+    });
+  };
+  const inputDot = () => {
+    setDisplayValue((prev) => {
+      if (!/\./.test(prev)) {
+        setWaitingOperand(false);
+        return prev + ".";
+      }
+      return prev;
+    });
+  };
+
+  const inputDigit = (digit) => {
+    if (waitingForOperand) {
+      setWaitingOperand(false);
+      setDisplayValue(String(digit));
+    } else {
+      setDisplayValue((prevValue) =>
+        prevValue === "0" ? String(digit) : prevValue + digit
+      );
+    }
+  };
+  const handleKeyDown = (event) => {
+    let { key } = event;
+
+    if (key === "Enter") key = "=";
+
+    if (/\d/.test(key)) {
+      event.preventDefault();
+      inputDigit(parseInt(key, 10));
+    } else if (key in CalculatorOperations) {
+      console.log("key", key);
+      event.preventDefault();
+      performOperation(key);
+    } else if (key === ".") {
+      event.preventDefault();
+      inputDot();
+    } else if (key === "%") {
+      event.preventDefault();
+      inputPercent();
+    } else if (key === "Backspace") {
+      event.preventDefault();
+      clearLastChar();
+    } else if (key === "Clear") {
+      event.preventDefault();
+
+      if (displayValue !== "0") {
+        clearDisplay();
+      } else {
+        clearAll();
+      }
+    }
+  };
+
+  useEffect(() => {
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, []);
+
+  const { clearText, hasValue } = useMemo(() => {
+    const hasValue = displayValue !== "0";
+    const clearText = hasValue ? "C" : "AC";
+    return {
+      clearText,
+      hasValue,
+    };
+  }, [displayValue]);
+
   const handleClick = useCallback(
-    ({ char, name, type }) => {
+    ({ char, name, type, operator }) => {
       switch (type) {
         case "function":
-          // setDisplayValue(char)
           if (name === "clear") {
-            setDisplayValue("0");
+            hasValue ? clearDisplay() : clearAll();
           }
           if (name === "negative") {
-            setDisplayValue((prev) => parseFloat(prev) * -1);
+            toggleSign();
           }
           if (name === "percent") {
-            setDisplayValue((prevChar) => {
-              const currentValue = parseFloat(prevChar);
-              if (currentValue === 0) return prevChar;
-              const fixedDigits = prevChar.replace(/^-?\d*\.?/, "");
-              const newValue = currentValue / 100;
-              return String(newValue.toFixed(fixedDigits.length + 2));
-            });
+            inputPercent();
           }
           break;
         case "operator":
-          if (name === "add") {
-            setDisplayValue((prev) => prev);
-            // setPreviousValue(parseFloat(displayValue))
-          }
+          performOperation(operator);
+          break;
+        case "decimal":
+          inputDot();
           break;
         default:
-          setDisplayValue((prevChar) => {
-            return prevChar === "0" ? String(char) : prevChar + char;
-          });
+          inputDigit(char);
       }
     },
-    [setDisplayValue]
-  );
-
-  const { clearDisplay, clearText } = useMemo(() => {
-    const clearDisplay = displayValue !== "0";
-    const clearText = clearDisplay ? "C" : "AC";
-    return {
+    [
+      setDisplayValue,
       clearDisplay,
-      clearText,
-    };
-  }, [displayValue]);
+      clearAll,
+      toggleSign,
+      inputPercent,
+      inputDot,
+      inputDigit,
+      performOperation,
+    ]
+  );
 
   return (
     <div className="keypad">
       {sortedKeys.map((key) => {
-        const { char, type } = key;
+        const { char, type, operator } = key;
         return (
           <Key
             key={char}
