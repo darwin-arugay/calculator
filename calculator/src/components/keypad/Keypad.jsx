@@ -128,7 +128,7 @@ export const Keypad = () => {
   useEffect(() => {
     document.addEventListener("keydown", handleKeyDown);
     return () => document.removeEventListener("keydown", handleKeyDown);
-  }, []);
+  }, [handleKeyDown]);
 
   const { clearText, hasValue } = useMemo(() => {
     const hasValue = displayValue !== "0";
