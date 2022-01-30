@@ -1,12 +1,21 @@
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, {
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
 import { Key } from "../keys/Key";
 import { keys } from "../../utils/keys";
 import { sortBy } from "lodash";
 
+import { CalculatorContext } from "../../CalculatorContext";
+
 // STYLE
 import "./keypad.scss";
 
-export const Keypad = ({ displayValue, setDisplayValue }) => {
+export const Keypad = () => {
+  const { displayValue, setDisplayValue } = useContext(CalculatorContext);
   const [value, setValue] = useState(null);
   const [operator, setOperator] = useState(null);
   const [waitingForOperand, setWaitingOperand] = useState(false);
@@ -21,11 +30,9 @@ export const Keypad = ({ displayValue, setDisplayValue }) => {
   };
   const performOperation = (nextOperator) => {
     const inputValue = parseFloat(displayValue);
-    console.log("value", value);
     if (value === null) {
       setValue(inputValue);
     } else if (operator) {
-      console.log("operator", operator);
       const currentValue = value || 0;
       const newValue = CalculatorOperations[operator](currentValue, inputValue);
       setValue(newValue);
@@ -96,7 +103,6 @@ export const Keypad = ({ displayValue, setDisplayValue }) => {
       event.preventDefault();
       inputDigit(parseInt(key, 10));
     } else if (key in CalculatorOperations) {
-      console.log("key", key);
       event.preventDefault();
       performOperation(key);
     } else if (key === ".") {
@@ -172,7 +178,7 @@ export const Keypad = ({ displayValue, setDisplayValue }) => {
   return (
     <div className="keypad">
       {sortedKeys.map((key) => {
-        const { char, type, operator } = key;
+        const { char, type } = key;
         return (
           <Key
             key={char}
